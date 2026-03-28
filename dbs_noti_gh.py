@@ -1,14 +1,13 @@
 import requests
 import pandas as pd
-import sqlite3
 from datetime import datetime
-#import schedule
 import time
+from io import StringIO
 
-DB_PATH       = "../investment.db"
+
 HEADERS       = {"User-Agent": "Mozilla/5.0"}
-TELEGRAM_TOKEN   = "8698959116:AAErA5gdBVOUJSMtkute-nw0"
-TELEGRAM_CHAT_ID = "102526"
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 # ── Telegram ──────────────────────────────────────────────────────────────────
 
@@ -23,7 +22,7 @@ def get_latest_close() -> tuple:
     print("hi")
     r   = requests.get(url, headers=HEADERS)
     print("hi1")
-    df = pd.read_html(r.text, flavor="lxml")[0]
+    df = pd.read_html(StringIO(r.text))[0]
     print("hi2")
     df.columns = [c.lower() for c in df.columns]
     print("hi3")
