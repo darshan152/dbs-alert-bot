@@ -20,17 +20,17 @@ def send_telegram(msg: str):
 
 def get_latest_close() -> tuple:
     url = "https://stockanalysis.com/quote/sgx/D05/history/"
-	print("hi")
+    print("hi")
     r   = requests.get(url, headers=HEADERS)
-	print("hi1")
+    print("hi1")
     df  = pd.read_html(r.text)[0]
-	print("hi2")
+    print("hi2")
     df.columns = [c.lower() for c in df.columns]
-	print("hi3")
+    print("hi3")
     date  = df.iloc[0, 0]
-	print("hi4")
+    print("hi4")
     close = float(df.iloc[0, 4])
-	print("hi5")
+    print("hi5")
     return date, close
 
 # ── Fetch pb_1dn from calculate_metrics ──────────────────────────────────────
