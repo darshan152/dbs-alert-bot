@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import datetime
 import time
 from io import StringIO
+import os
 
 
 HEADERS       = {"User-Agent": "Mozilla/5.0"}
