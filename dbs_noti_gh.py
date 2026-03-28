@@ -23,7 +23,7 @@ def get_latest_close() -> tuple:
     print("hi")
     r   = requests.get(url, headers=HEADERS)
     print("hi1")
-    df  = pd.read_html(r.text)[0]
+    df = pd.read_html(r.text, flavor="lxml")[0]
     print("hi2")
     df.columns = [c.lower() for c in df.columns]
     print("hi3")
