@@ -2,7 +2,7 @@ name: DBS Alert Bot
 
 on:
   schedule:
-    - cron: "*/5 * * * *"   # 8:30am Singapore time
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 jobs:
