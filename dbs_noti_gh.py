@@ -75,7 +75,7 @@ def check_and_alert():
 
             # Alert if PB is within the lower 25% of the band
             THRESHOLD_PCT = 25
-            alert_triggered = pct_from_1dn <= THRESHOLD_PCT
+            alert_triggered = pct_from_1dn <= THRESHOLD_PCT or float(div_yield.strip("%")) >= 5.5
 
             msg = (
                 f"*DBS ({ticker}) Daily PB Alert*\n"
@@ -94,7 +94,7 @@ def check_and_alert():
             print(msg)
 
             if alert_triggered:
-                msg += f"\n*ALERT: PB is near 1dn — possible buy zone*"
+                msg += f"\n*ALERT: PB is near 1dn Or Div yield is high — possible buy zone*"
                 print("ALERT triggered!")
             else:
                 msg += f"\nStatus: PB within normal range"
