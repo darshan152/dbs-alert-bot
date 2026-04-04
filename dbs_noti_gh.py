@@ -2,6 +2,7 @@ import requests
 import pandas as pd
 from datetime import datetime
 import json
+from io import StringIO
 import os
 from bs4 import BeautifulSoup
 
@@ -20,7 +21,7 @@ def send_telegram(msg: str):
 def get_latest_close(ticker) -> tuple:
     url = f"https://stockanalysis.com/quote/sgx/{ticker}/history/"
     r   = requests.get(url, headers=HEADERS)
-    df  = pd.read_html(r.text)[0]
+    df  = pd.read_html(StringIO(r.text))[0]
     df.columns = [c.lower() for c in df.columns]
     date  = df.iloc[0, 0]
     close = float(df.iloc[0, 4])
@@ -34,7 +35,7 @@ def get_latest_div_yield(ticker):
     response = requests.get(url, headers=HEADERS, timeout=10)
     response.raise_for_status()
 
-    soup = BeautifulSoup(response.text, "html.parser")
+    soup = BeautifulSoup(StringIO(response.text), "html.parser")
 
     # The page lists dividend info in a definition-list style block.
     # Look for the label "Dividend Yield" and grab the next sibling value.
