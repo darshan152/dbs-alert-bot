@@ -1,7 +1,7 @@
 import requests
 import pandas as pd
 from datetime import datetime
-import time
+import json
 from io import StringIO
 import os
 
@@ -18,19 +18,13 @@ def send_telegram(msg: str):
 
 # ── Fetch latest close from web ───────────────────────────────────────────────
 
-def get_latest_close() -> tuple:
-    url = "https://stockanalysis.com/quote/sgx/D05/history/"
-    print("hi")
+def get_latest_close(ticker) -> tuple:
+    url = f"https://stockanalysis.com/quote/sgx/{ticker}/history/"
     r   = requests.get(url, headers=HEADERS)
-    print("hi1")
-    df = pd.read_html(StringIO(r.text))[0]
-    print("hi2")
+    df  = pd.read_html(r.text)[0]
     df.columns = [c.lower() for c in df.columns]
-    print("hi3")
     date  = df.iloc[0, 0]
-    print("hi4")
     close = float(df.iloc[0, 4])
-    print("hi5")
     return date, close
 
 # ── Fetch pb_1dn from calculate_metrics ──────────────────────────────────────
@@ -39,53 +33,56 @@ def get_latest_close() -> tuple:
 # ── Main alert logic ──────────────────────────────────────────────────────────
 
 def check_and_alert():
-    ticker = "D05"
-    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Running check for {ticker}...")
+    tickers = ["D05","U11","O39"]
+    for ticker in tickers:
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M')}] Running check for {ticker}...")
 
-    try:
-        date, close   = get_latest_close()
+        try:
+            date, close   = get_latest_close(ticker)
+            with open("output.json", "r") as f:
+                data = json.load(f)
+            bps    = data[ticker]["bps"]
+            pb     = close / bps
+            pb_ave = data[ticker]["pb_ave"]
+            pb_1dn = data[ticker]["pb_1dn"]
+            pb_1up = data[ticker]["pb_1up"]
 
-        bps    = 24.1966
-        pb     = close / bps
-        pb_ave = 1.2451
-        pb_1dn = 0.9332
-        pb_1up = 1.5569
+            # Distance from PB to pb_1dn as % of the band width
+            band_width   = pb_1up - pb_1dn
+            dist_to_1dn  = pb - pb_1dn                       # positive = above, negative = below
+            pct_from_1dn = (dist_to_1dn / band_width) * 100  # 0% = at 1dn, 100% = at 1up
 
-        # Distance from PB to pb_1dn as % of the band width
-        band_width   = pb_1up - pb_1dn
-        dist_to_1dn  = pb - pb_1dn                       # positive = above, negative = below
-        pct_from_1dn = (dist_to_1dn / band_width) * 100  # 0% = at 1dn, 100% = at 1up
+            # Alert if PB is within the lower 25% of the band
+            THRESHOLD_PCT = 25
+            alert_triggered = pct_from_1dn <= THRESHOLD_PCT
 
-        # Alert if PB is within the lower 25% of the band
-        THRESHOLD_PCT = 25
-        alert_triggered = pct_from_1dn <= THRESHOLD_PCT
+            msg = (
+                f"*DBS ({ticker}) Daily PB Alert*\n"
+                f"Date       : {date}\n"
+                f"Close      : SGD {close:.2f}\n"
+                f"BpS        : SGD {bps:.4f}\n"
+                f"PB         : {pb:.4f}\n"
+                f"────────────────────\n"
+                f"PB 1up     : {pb_1up:.4f}\n"
+                f"PB Ave     : {pb_ave:.4f}\n"
+                f"PB 1dn     : {pb_1dn:.4f}\n"
+                f"────────────────────\n"
+                f"Dist to 1dn: {dist_to_1dn:+.4f} ({pct_from_1dn:.1f}% from bottom)\n"
+            )
+            print(msg)
 
-        msg = (
-            f"*DBS ({ticker}) Daily PB Alert*\n"
-            f"Date       : {date}\n"
-            f"Close      : SGD {close:.2f}\n"
-            f"BpS        : SGD {bps:.4f}\n"
-            f"PB         : {pb:.4f}\n"
-            f"────────────────────\n"
-            f"PB 1up     : {pb_1up:.4f}\n"
-            f"PB Ave     : {pb_ave:.4f}\n"
-            f"PB 1dn     : {pb_1dn:.4f}\n"
-            f"────────────────────\n"
-            f"Dist to 1dn: {dist_to_1dn:+.4f} ({pct_from_1dn:.1f}% from bottom)\n"
-        )
+            if alert_triggered:
+                msg += f"\n*ALERT: PB is near 1dn — possible buy zone*"
+                print("ALERT triggered!")
+            else:
+                msg += f"\nStatus: PB within normal range"
 
-        if alert_triggered:
-            msg += f"\n*ALERT: PB is near 1dn — possible buy zone*"
-            print("ALERT triggered!")
-        else:
-            msg += f"\nStatus: PB within normal range"
+            send_telegram(msg)
+            print("Alert sent.")
 
-        send_telegram(msg)
-        print("Alert sent.")
-
-    except Exception as e:
-        send_telegram(f"[{ticker}] Error during check: {e}")
-        print(f"Error: {e}")
+        except Exception as e:
+            send_telegram(f"[{ticker}] Error during check: {e}")
+            print(f"Error: {e}")
 
 # ── Scheduler — runs at 8:30am daily (before SGX opens at 9am) ────────────────
 
