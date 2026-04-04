@@ -27,7 +27,6 @@ def get_latest_close(ticker) -> tuple:
     close = float(df.iloc[0, 4])
     return date, close
 
-
 # ── Fetch pb_1dn from calculate_metrics ──────────────────────────────────────
 
 
