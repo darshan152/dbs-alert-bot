@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 HEADERS       = {"User-Agent": "Mozilla/5.0"}
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+TICKER_NAMES = {"D05":"DBS", "U11":"UOB","O39":"OCBC"}
 
 # ── Telegram ──────────────────────────────────────────────────────────────────
 
@@ -78,7 +79,7 @@ def check_and_alert():
             alert_triggered = pct_from_1dn <= THRESHOLD_PCT or float(div_yield.strip("%")) >= 5.5
 
             msg = (
-                f"*DBS ({ticker}) Daily PB Alert*\n"
+                f"*{TICKER_NAMES[ticker]} ({ticker}) Daily PB Alert*\n"
                 f"Date       : {date}\n"
                 f"Close      : SGD {close:.2f}\n"
                 f"Div Yield  : {div_yield}\n"
@@ -97,7 +98,7 @@ def check_and_alert():
                 msg += f"\n*ALERT: PB is near 1dn Or Div yield is high — possible buy zone*"
                 print("ALERT triggered!")
             else:
-                msg += f"\nStatus: PB within normal range"
+                msg += f"\nStatus: PB & Div Yield within normal range"
 
             send_telegram(msg)
             print("Alert sent.")
