@@ -2,9 +2,8 @@ import requests
 import pandas as pd
 from datetime import datetime
 import json
-from io import StringIO
 import os
-
+from bs4 import BeautifulSoup
 
 HEADERS       = {"User-Agent": "Mozilla/5.0"}
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -29,6 +28,26 @@ def get_latest_close(ticker) -> tuple:
 
 # ── Fetch pb_1dn from calculate_metrics ──────────────────────────────────────
 
+def get_latest_div_yield(ticker):
+    url= f"https://stockanalysis.com/quote/sgx/{ticker}/dividend/"
+
+    response = requests.get(url, headers=HEADERS, timeout=10)
+    response.raise_for_status()
+
+    soup = BeautifulSoup(response.text, "html.parser")
+
+    # The page lists dividend info in a definition-list style block.
+    # Look for the label "Dividend Yield" and grab the next sibling value.
+    text = soup.get_text(separator="\n")
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+
+    for i, line in enumerate(lines):
+        if "Dividend Yield" in line:
+            # The yield value is on the next non-empty line
+            yield_value = lines[i + 1]
+            return yield_value
+
+    return None
 
 # ── Main alert logic ──────────────────────────────────────────────────────────
 
@@ -39,6 +58,7 @@ def check_and_alert():
 
         try:
             date, close   = get_latest_close(ticker)
+            div_yield = get_latest_div_yield(ticker)
             with open("output.json", "r") as f:
                 data = json.load(f)
             bps    = data[ticker]["bps"]
@@ -60,6 +80,7 @@ def check_and_alert():
                 f"*DBS ({ticker}) Daily PB Alert*\n"
                 f"Date       : {date}\n"
                 f"Close      : SGD {close:.2f}\n"
+                f"Div Yield  : {div_yield}\n"
                 f"BpS        : SGD {bps:.4f}\n"
                 f"PB         : {pb:.4f}\n"
                 f"────────────────────\n"
